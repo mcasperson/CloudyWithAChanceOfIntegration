@@ -172,7 +172,7 @@ Resources:
   KubernetesCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: Kubernetes Cluster
+      Name: KubernetesCluster
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref ControlPlaneSecurityGroup
