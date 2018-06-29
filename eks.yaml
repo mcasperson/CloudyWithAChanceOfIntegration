@@ -51,7 +51,7 @@ Metadata:
       - Subnet03Block
 
 Resources:
-  EKSRole:
+  EKSRole#{StackSuffix}:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -172,7 +172,7 @@ Resources:
   KubernetesCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: KubernetesCluster
+      Name: KubernetesCluster#{StackSuffix}
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref ControlPlaneSecurityGroup
