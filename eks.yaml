@@ -175,12 +175,12 @@ Resources:
       Name: KubernetesCluster#{StackSuffix}
       ResourcesVpcConfig:
         SecurityGroupIds:
-          - !Ref ControlPlaneSecurityGroup
+        - !Ref ControlPlaneSecurityGroup
         SubnetIds:
-          - !Ref Subnet01
-          - !Ref Subnet02
-          - !Ref Subnet03
-      RoleArn: !GetAtt EKSRole.Arn
+        - !Ref Subnet01
+        - !Ref Subnet02
+        - !Ref Subnet03
+      RoleArn: !GetAtt EKSRole#{StackSuffix}.Arn
 
 Outputs:
 
