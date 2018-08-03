@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "DukeLegion"
+  },
+  {
+    "ParameterKey": "DBPassword",
+    "ParameterValue": "#{TeamCityDatabasePass}"
+  }
+]
