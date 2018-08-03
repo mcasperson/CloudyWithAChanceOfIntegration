@@ -12,7 +12,7 @@
     "ParameterValue": "#{CertificateDomainName}"
   },
   {
-    "ParameterKey": "SshAccessSourceIPRang",
-    "ParameterValue": "#{CertificateDomainName}"
+    "ParameterKey": "SshAccessSourceIPRange",
+    "ParameterValue": "#{SshAccessSourceIPRange}"
   }
 ]
