@@ -5,6 +5,14 @@
   },
   {
     "ParameterKey": "DBPassword",
-    "ParameterValue": "#{TeamCityDatabasePass}"
+    "ParameterValue": "#{DBPassword}"
+  },
+  {
+    "ParameterKey": "CertificateDomainName",
+    "ParameterValue": "#{CertificateDomainName}"
+  },
+  {
+    "ParameterKey": "SshAccessSourceIPRang",
+    "ParameterValue": "#{CertificateDomainName}"
   }
 ]
