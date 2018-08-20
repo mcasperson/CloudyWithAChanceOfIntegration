@@ -129,7 +129,7 @@ Resources:
           sudo su -c 'curl https://download.mono-project.com/repo/centos7-stable.repo | tee /etc/yum.repos.d/mono-centos7-stable.repo'
           sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
           sudo sh -c 'echo -e "[packages-microsoft-com-prod]\nname=packages-microsoft-com-prod \nbaseurl=https://packages.microsoft.com/yumrepos/microsoft-rhel7.3-prod\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/dotnetdev.repo'
-          sudo yum install mono-devel libunwind libicu dotnet-sdk-2.0.0 java-1.8.0-openjdk -y
+          sudo yum install wget mono-devel libunwind libicu dotnet-sdk-2.0.0 java-1.8.0-openjdk -y
           cat <<EOF > /etc/yum.repos.d/kubernetes.repo
           [kubernetes]
           name=Kubernetes
@@ -140,6 +140,9 @@ Resources:
           gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
           EOF
           yum install -y kubectl
+          wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+          rpm -ivh epel-release-latest-7.noarch.rpm
+          yum install -y jq
 Outputs:
   PublicIp:
     Value:
