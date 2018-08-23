@@ -146,6 +146,10 @@ Resources:
           wget https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz
           tar -zxvf helm-v2.10.0-linux-amd64.tar.gz
           mv linux-amd64/helm /usr/local/bin/helm
+          # Install Docker CE
+          sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+          sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+          sudo yum install docker-ce
 Outputs:
   PublicIp:
     Value:
