@@ -1,0 +1,317 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: m3.medium
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - hi1.4xlarge
+      - hs1.8xlarge
+      - cr1.8xlarge
+      - cc2.8xlarge
+      - cg1.4xlarge
+    Description: Enter instance size. Default is m3.medium.
+  AMI:
+    Type: String
+    Default: ami-0a730289c7c16e141
+    Description: AMI Image
+  VpcId:
+    Description: The VPC of the worker instances
+    Type: AWS::EC2::VPC::Id
+  Subnets:
+    Description: The subnets where workers can be created.
+    Type: List<AWS::EC2::Subnet::Id>
+  ClusterName:
+    Description: The cluster name provided when the cluster was created. If it is incorrect, nodes will not be able to join the cluster.
+    Type: String
+  ClusterControlPlaneSecurityGroup:
+    Description: The security group of the cluster control plane.
+    Type: AWS::EC2::SecurityGroup::Id
+  VpcId:
+    Description: The VPC of the worker instances
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  NodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref NodeInstanceRole
+
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+NodeSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: Security group for all nodes in the cluster
+    VpcId:
+      !Ref VpcId
+    Tags:
+    - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
+      Value: 'owned'
+
+  NodeSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow node to communicate with each other
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: '-1'
+      FromPort: 0
+      ToPort: 65535
+
+  NodeSecurityGroupFromControlPlaneIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+
+  ControlPlaneEgressToNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroupEgress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow the cluster control plane to communicate with worker Kubelet and pods
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+
+  NodeSecurityGroupFromControlPlaneOn443Ingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  ControlPlaneEgressToNodeSecurityGroupOn443:
+    Type: AWS::EC2::SecurityGroupEgress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  ClusterControlPlaneSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow pods to communicate with the cluster API Server
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      ToPort: 443
+      FromPort: 443
+
+  Windows:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType:
+        Ref: InstanceTypeParameter
+      KeyName: DukeLegion
+      IamInstanceProfile: !Ref NodeInstanceProfile
+      SecurityGroups:
+        - Ref: NodeSecurityGroup
+      Tags:
+        -
+          Key: Appplication
+          Value: Windows Server 1803
+        -
+          Key: Domain
+          Value: None
+        -
+          Key: Environment
+          Value: Test
+        -
+          Key: LifeTime
+          Value: Transient
+        -
+          Key: Name
+          Value: Windows Server 1803
+        -
+          Key: OS
+          Value: Windows
+        -
+          Key: OwnerContact
+          Value: "#{Deployer Contact}"
+        -
+          Key: Purpose
+          Value: Support Test Instance
+        -
+          Key: Source
+          Value: CloudForation Script in Octopus Deploy
+        -
+          Key: scheduler:ec2-startstop
+          Value: false
+      UserData:
+        !Base64 |
+          <powershell>
+          # Based on https://docs.microsoft.com/en-us/virtualization/windowscontainers/kubernetes/getting-started-kubernetes-windows#preparing-a-windows-node
+
+          # Install chocolatey
+          Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          # Need a console text editor
+          choco install vim
+          # Need the AWS CLI
+          choco install awscli
+
+          # Install docker provider
+          Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
+          Install-Package -Name Docker -ProviderName DockerMsftProvider
+
+          # Get the scripts
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          wget https://github.com/OctopusDeploy/SDN/archive/master.zip -o master.zip
+          Expand-Archive master.zip -DestinationPath master
+          mkdir C:/k/
+          mv master/SDN-master/Kubernetes/windows/* C:/k/
+          rm -recurse -force master,master.zip
+
+          # Download and extract binaries
+          wget https://dl.k8s.io/v1.10.7/kubernetes-client-windows-amd64.tar.gz -o c:\k\kubernetes-client-windows-amd64.tar.gz
+          wget https://dl.k8s.io/v1.10.7/kubernetes-node-windows-amd64.tar.gz -o c:\k\kubernetes-node-windows-amd64.tar.gz
+          wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-07-26/bin/windows/amd64/aws-iam-authenticator.exe -o c:\k\aws-iam-authenticator.exe
+          tar -xzf c:\k\kubernetes-client-windows-amd64.tar.gz -C c:\k
+          tar -xzf c:\k\kubernetes-node-windows-amd64.tar.gz -C c:\k
+          mv c:\k\kubernetes\client\bin\*.exe c:\k
+          mv c:\k\kubernetes\node\bin\*.exe c:\k
+          cd c:\k
+          rm -recurse -force c:\k\kubernetes
+
+          # Get the cluster details
+          $clusterEndpoint = & aws eks describe-cluster --name $ClusterName --query cluster.endpoint --output text
+          $clusterCa = & aws eks describe-cluster --name $ClusterName --query cluster.certificateAuthority.data --output text
+
+          # Build the kubectl config file
+          Set-Content -Path c:\k\config -Value @"
+          apiVersion: v1
+          clusters:
+          - cluster:
+              server: $clusterEndpoint
+              certificate-authority-data: $clusterCa
+            name: kubernetes
+          contexts:
+          - context:
+              cluster: kubernetes
+              user: aws
+            name: aws
+          current-context: aws
+          kind: Config
+          preferences: {}
+          users:
+          - name: aws
+            user:
+              exec:
+                apiVersion: client.authentication.k8s.io/v1alpha1
+                command: aws-iam-authenticator
+                args:
+                - "token"
+                - "-i"
+                - "$ClusterName"
+                # - "-r"
+                # - "<role-arn>"
+                # env:
+                # - name: AWS_PROFILE
+                #   value: "<aws-profile>"
+          "@
+
+          # Set path vars
+          $env:Path += ";C:\k"
+          [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\k", [EnvironmentVariableTarget]::Machine)
+
+          # Set k8s vars
+          $env:KUBECONFIG="C:\k\config"
+          [Environment]::SetEnvironmentVariable("KUBECONFIG", "C:\k\config", [EnvironmentVariableTarget]::Machine)
+
+          # Build the pause image
+          docker pull microsoft/windowsservercore:1803
+          docker tag microsoft/windowsservercore:1803 microsoft/windowsservercore:latest
+          cd C:/k/
+          docker build -t kubeletwin/pause .
+          </powershell>
+Outputs:
+  PublicIp:
+    Value:
+      Fn::GetAtt:
+      - Windows
+      - PublicIp
+    Description: Server's PublicIp Address
