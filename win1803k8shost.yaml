@@ -206,7 +206,7 @@ NodeSecurityGroup:
           Value: Transient
         -
           Key: Name
-          Value: Windows Server 1803
+          Value: Kubernete Windows Server 1803 Node
         -
           Key: OS
           Value: Windows
@@ -230,36 +230,31 @@ NodeSecurityGroup:
           # Install chocolatey
           Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           # Need a console text editor
-          choco install vim
+          choco install vim -y
           # Need the AWS CLI
-          choco install awscli
+          choco install awscli -y
 
-          # Install docker provider
-          Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
-          Install-Package -Name Docker -ProviderName DockerMsftProvider
+          # Set path vars
+          $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
+          [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80", [EnvironmentVariableTarget]::Machine)
 
-          # Get the scripts
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          wget https://github.com/OctopusDeploy/SDN/archive/master.zip -o master.zip
-          Expand-Archive master.zip -DestinationPath master
-          mkdir C:/k/
-          mv master/SDN-master/Kubernetes/windows/* C:/k/
-          rm -recurse -force master,master.zip
+          # Set k8s vars
+          $env:KUBECONFIG="C:\k\config"
+          [Environment]::SetEnvironmentVariable("KUBECONFIG", "C:\k\config", [EnvironmentVariableTarget]::Machine)
+
+          mkdir c:\k
 
           # Download and extract binaries
-          wget https://dl.k8s.io/v1.10.7/kubernetes-client-windows-amd64.tar.gz -o c:\k\kubernetes-client-windows-amd64.tar.gz
           wget https://dl.k8s.io/v1.10.7/kubernetes-node-windows-amd64.tar.gz -o c:\k\kubernetes-node-windows-amd64.tar.gz
           wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-07-26/bin/windows/amd64/aws-iam-authenticator.exe -o c:\k\aws-iam-authenticator.exe
-          tar -xzf c:\k\kubernetes-client-windows-amd64.tar.gz -C c:\k
           tar -xzf c:\k\kubernetes-node-windows-amd64.tar.gz -C c:\k
-          mv c:\k\kubernetes\client\bin\*.exe c:\k
           mv c:\k\kubernetes\node\bin\*.exe c:\k
           cd c:\k
           rm -recurse -force c:\k\kubernetes
 
           # Get the cluster details
-          $clusterEndpoint = & aws eks describe-cluster --name $ClusterName --query cluster.endpoint --output text
-          $clusterCa = & aws eks describe-cluster --name $ClusterName --query cluster.certificateAuthority.data --output text
+          $clusterEndpoint = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name #{ClusterName} --query cluster.endpoint --output text
+          $clusterCa = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name #{ClusterName} --query cluster.certificateAuthority.data --output text
 
           # Build the kubectl config file
           Set-Content -Path c:\k\config -Value @"
@@ -286,7 +281,7 @@ NodeSecurityGroup:
                 args:
                 - "token"
                 - "-i"
-                - "$ClusterName"
+                - "#{ClusterName}"
                 # - "-r"
                 # - "<role-arn>"
                 # env:
@@ -294,19 +289,64 @@ NodeSecurityGroup:
                 #   value: "<aws-profile>"
           "@
 
-          # Set path vars
-          $env:Path += ";C:\k"
-          [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\k", [EnvironmentVariableTarget]::Machine)
-
-          # Set k8s vars
-          $env:KUBECONFIG="C:\k\config"
-          [Environment]::SetEnvironmentVariable("KUBECONFIG", "C:\k\config", [EnvironmentVariableTarget]::Machine)
+          Set-Content -Path Dockerfile -Value @"
+          FROM microsoft/nanoserver:1803
+          CMD cmd /c ping -t localhost
+          "@
 
           # Build the pause image
           docker pull microsoft/windowsservercore:1803
           docker tag microsoft/windowsservercore:1803 microsoft/windowsservercore:latest
           cd C:/k/
           docker build -t kubeletwin/pause .
+
+          # Get the second nic details
+          $ifIndex = Get-NetAdapter -Name "*" |
+            ? {$_.Name -like "Ethernet *"} |
+            Sort-Object -Property ifIndex -Descending |
+            Select-Object -First 1 -Property ifIndex
+
+          $gateway = Get-NetIPConfiguration |
+            ? {$_.InterfaceIndex -eq $ifIndex} |
+            Select-Object -Property IPv4DefaultGateway
+
+          # Delete the EC2 Metadata route to the first nic (which will
+          # not work after we start adding docker networks
+          route delete -p 169.254.169.254
+
+          # Direct traffic to the Metadata service via the second nic
+          route -p add 169.254.169.254 mask 255.255.255.255 $gateway IF $ifIndex
+
+          # Create the network called "host"
+          docker network create -d nat host
+
+          # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
+          # Is this needed? We don't want to expose Octopus server to each other anyway.
+          # https://github.com/andyzhangx/Demo/blob/master/acs-engine/deployment/windows/kubeletstart.ps1
+          # netsh advfirewall set allprofiles state off
+
+          # The command to start kubelet
+          $KubeDnsServiceIp="11.0.0.10"
+          $Hostname = $(& curl -UseBasicParsing http://169.254.169.254/latest/meta-data/local-hostname).Content
+          $KubeletCommand = @"
+            c:\k\kubelet.exe --hostname-override=$Hostname --v=6 `
+              --pod-infra-container-image=kubeletwin/pause --resolv-conf="" `
+              --allow-privileged=true --enable-debugging-handlers `
+              --cluster-dns=$KubeDnsServiceIp --cluster-domain=cluster.local `
+              --kubeconfig=c:\k\config --hairpin-mode=promiscuous-bridge `
+              --image-pull-progress-deadline=20m --cgroups-per-qos=false `
+              --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" `
+              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" `
+              --register-with-taints="os=windows"
+          "@
+
+          # Manage kubelet as a Windows service
+          New-Service `
+            -Name "kubelet" `
+            -BinaryPathName $KubeletCommand `
+            -DisplayName "kubelet" `
+            -StartupType Manual `
+            -Description "Kubernetes kubelet service"
           </powershell>
 Outputs:
   PublicIp:
