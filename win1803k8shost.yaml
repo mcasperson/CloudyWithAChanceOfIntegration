@@ -209,8 +209,14 @@ Resources:
           <powershell>
           # Based on https://docs.microsoft.com/en-us/virtualization/windowscontainers/kubernetes/getting-started-kubernetes-windows#preparing-a-windows-node
 
+          # There is a delay until the networking is ready
+          while (!$(Test-Connection -ComputerName "google.com" -Quiet)) {
+            Start-Sleep 5
+          }
+
           # Install chocolatey
-          Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           # Need a console text editor
           choco install vim -y
           # Need the AWS CLI
