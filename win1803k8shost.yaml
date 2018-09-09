@@ -287,11 +287,12 @@ Resources:
           $ifIndex = Get-NetAdapter -Name "*" |
             ? {$_.Name -like "Ethernet *"} |
             Sort-Object -Property ifIndex -Descending |
-            Select-Object -First 1 -Property ifIndex
+            Select-Object -First 1 -ExpandProperty ifIndex
 
           $gateway = Get-NetIPConfiguration |
             ? {$_.InterfaceIndex -eq $ifIndex} |
-            Select-Object -Property IPv4DefaultGateway
+            Select-Object -ExpandProperty IPv4DefaultGateway |
+            Select-Object -ExpandProperty NextHop
 
           # Delete the EC2 Metadata route to the first nic (which will
           # not work after we start adding docker networks
