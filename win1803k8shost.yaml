@@ -321,7 +321,7 @@ Resources:
               --image-pull-progress-deadline=20m --cgroups-per-qos=false `
               --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" `
               --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" `
-              --register-with-taints="os=windows"
+              --register-with-taints="os=windows:NoSchedule"
           "@
 
           # Manage kubelet as a Windows service
