@@ -466,13 +466,17 @@ Resources:
             Select-Object -ExpandProperty NextHop
 
           # Delete the EC2 Metadata route to the first nic (which will
-          # not work after we start adding docker networks
+          # not work after we start adding docker networks). We need to
+          # be able to use the metadata API for IAM auth.
           route delete -p 169.254.169.254
 
           # Direct traffic to the Metadata service via the second nic
           route -p add 169.254.169.254 mask 255.255.255.255 $gateway IF $ifIndex
 
           # Create the network called "host"
+          # This solves the error "Network host not found". I think you should be able
+          # to change the name of this network with an environment variable, but haven't
+          # found the exact setting.
           $NetworkName = docker network create -d nat host
 
           # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
@@ -480,6 +484,9 @@ Resources:
           # For now don't do this, as userspace mode will do.
           #docker network create -d l2bridge --gateway $gateway --subnet "$gateway/30"
 
+          # Build the CNI configuration
+          # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
+          # details on the contents of this file.
           Update-CNIConfig "192.168.0.0/24" $NetworkName.Substring(0, 15)
 
           # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
@@ -506,6 +513,9 @@ Resources:
             $env:KUBE_NETWORK=$NetworkName
             c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
           "@
+
+          Set-Content -Path c:\k\start-kubelet.ps1 -Value $KubeletCommand
+          Set-Content -Path c:\k\start-kube-proxy.ps1 -Value $KubeProxyCommand
 
           # Manage kubelet as a Windows service
           New-Service `
