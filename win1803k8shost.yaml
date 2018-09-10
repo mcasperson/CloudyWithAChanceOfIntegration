@@ -376,6 +376,9 @@ Resources:
             Start-Sleep 5
           }
 
+          # Enable TLS12
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
           # Install chocolatey
           Set-ExecutionPolicy Bypass -Scope Process -Force
           iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
@@ -383,8 +386,6 @@ Resources:
           choco install vim -y
           # Need the AWS CLI
           choco install awscli -y
-          # Chrome is useful for local debugging
-          choco install googlechrome -y
 
           # Set path vars
           $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
@@ -405,6 +406,9 @@ Resources:
           mv c:\k\kubernetes\node\bin\*.exe c:\k
           cd c:\k
           rm -recurse -force c:\k\kubernetes
+
+          # Get the CNI plugin
+          wget https://github.com/Microsoft/SDN/raw/master/Kubernetes/windows/cni/wincni.exe -o c:\k\cni\wincni.exe
 
           # Get the cluster details
           $clusterEndpoint = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name ${ClusterName} --query cluster.endpoint --output text --region ${AWS::Region}
@@ -506,7 +510,6 @@ Resources:
 
           # Proxy mode kernelspace fails, but userspace works ok
           $KubeProxyCommand = @"
-            $env:KUBE_NETWORK=$NetworkName
             c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
           "@
 
