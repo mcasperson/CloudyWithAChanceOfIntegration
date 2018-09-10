@@ -57,6 +57,17 @@ Resources:
       - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
         Value: 'owned'
 
+  RDP:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow node to communicate with each other
+      GroupId: !Ref NodeSecurityGroup
+      CidrIp: '0.0.0.0/0'
+      IpProtocol: tcp
+      FromPort: 3389
+      ToPort: 3389
+
   NodeSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     DependsOn: NodeSecurityGroup
