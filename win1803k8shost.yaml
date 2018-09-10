@@ -184,6 +184,12 @@ Resources:
         DeviceIndex: '0'
       - NetworkInterfaceId: !Ref 'Eth1'
         DeviceIndex: '1'
+      BlockDeviceMappings:
+        DeviceName: /dev/sda1
+        Ebs:
+          VolumeSize: "250"
+          VolumeType : "io1"
+          Iops: "1500"
       Tags:
       -
         Key: Appplication
@@ -370,6 +376,8 @@ Resources:
           choco install vim -y
           # Need the AWS CLI
           choco install awscli -y
+          # Chrome is useful for local debugging
+          choco install googlechrome -y
 
           # Set path vars
           $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
@@ -422,25 +430,6 @@ Resources:
                 - "-i"
                 - "${ClusterName}"
           "@
-
-          # Update the security config map
-          Set-Content -Path c:\k\cm.yml -Value @"
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: aws-auth
-            namespace: kube-system
-          data:
-            mapRoles: |
-              - rolearn: ${NodeInstanceRole.Arn}
-                username: system:node:{{EC2PrivateDNSName}}
-                groups:
-                  - system:bootstrappers
-                  - system:nodes
-                  - list-endpoints
-          "@
-
-          kubectl apply -f c:\k\cm.yml
 
           # Create the docker file
           Set-Content -Path Dockerfile -Value @"
@@ -497,14 +486,14 @@ Resources:
           # The command to start kubelet
           $Hostname = $(& curl -UseBasicParsing http://169.254.169.254/latest/meta-data/local-hostname).Content
           $KubeletCommand = @"
-            c:\k\kubelet.exe --hostname-override=$Hostname --v=6 `
-              --pod-infra-container-image=kubeletwin/pause --resolv-conf="" `
-              --allow-privileged=true --enable-debugging-handlers `
-              --cluster-dns=$KubeDnsServiceIp --cluster-domain=cluster.local `
-              --kubeconfig=c:\k\config --hairpin-mode=promiscuous-bridge `
-              --image-pull-progress-deadline=20m --cgroups-per-qos=false `
-              --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" `
-              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" `
+            c:\k\kubelet.exe --hostname-override=$Hostname --v=6 ``
+              --pod-infra-container-image=kubeletwin/pause --resolv-conf="" ``
+              --allow-privileged=true --enable-debugging-handlers ``
+              --cluster-dns=$KubeDnsServiceIp --cluster-domain=cluster.local ``
+              --kubeconfig=c:\k\config --hairpin-mode=promiscuous-bridge ``
+              --image-pull-progress-deadline=20m --cgroups-per-qos=false ``
+              --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" ``
+              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" ``
               --register-with-taints="os=windows:NoSchedule"
           "@
 
