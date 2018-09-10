@@ -61,7 +61,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     DependsOn: NodeSecurityGroup
     Properties:
-      Description: Allow node to communicate with each other
+      Description: Allow RDP connections
       GroupId: !Ref NodeSecurityGroup
       CidrIp: '0.0.0.0/0'
       IpProtocol: tcp
@@ -392,8 +392,8 @@ Resources:
           rm -recurse -force c:\k\kubernetes
 
           # Get the cluster details
-          $clusterEndpoint = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name ${ClusterName} --query cluster.endpoint --output text
-          $clusterCa = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name ${ClusterName} --query cluster.certificateAuthority.data --output text
+          $clusterEndpoint = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name ${ClusterName} --query cluster.endpoint --output text --region ${AWS::Region}
+          $clusterCa = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name ${ClusterName} --query cluster.certificateAuthority.data --output text --region ${AWS::Region}
 
           # Build the kubectl config file
           Set-Content -Path c:\k\config -Value @"
@@ -423,6 +423,26 @@ Resources:
                 - "${ClusterName}"
           "@
 
+          # Update the security config map
+          Set-Content -Path c:\k\cm.yml -Value @"
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: aws-auth
+            namespace: kube-system
+          data:
+            mapRoles: |
+              - rolearn: ${NodeInstanceRole.Arn}
+                username: system:node:{{EC2PrivateDNSName}}
+                groups:
+                  - system:bootstrappers
+                  - system:nodes
+                  - list-endpoints
+          "@
+
+          kubectl apply -f c:\k\cm.yml
+
+          # Create the docker file
           Set-Content -Path Dockerfile -Value @"
           FROM microsoft/nanoserver:1803
           CMD cmd /c ping -t localhost
@@ -491,3 +511,7 @@ Outputs:
       - Windows
       - PublicIp
     Description: Server's PublicIp Address
+
+  NodeInstanceRole:
+    Description: The node instance role
+    Value: !GetAtt NodeInstanceRole.Arn
