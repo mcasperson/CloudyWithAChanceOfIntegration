@@ -475,6 +475,11 @@ Resources:
           # Create the network called "host"
           $NetworkName = docker network create -d nat host
 
+          # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
+          # This might have something to do with using kube-proxy in kernelspace mode.
+          # For now don't do this, as userspace mode will do.
+          #docker network create -d l2bridge --gateway $gateway --subnet "$gateway/30"
+
           Update-CNIConfig "192.168.0.0/24" $NetworkName.Substring(0, 15)
 
           # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
@@ -496,6 +501,12 @@ Resources:
               --register-with-taints="os=windows:NoSchedule"
           "@
 
+          # Proxy mode kernelspace fails, but userspace works ok
+          $KubeProxyCommand = @"
+            $env:KUBE_NETWORK=$NetworkName
+            c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
+          "@
+
           # Manage kubelet as a Windows service
           New-Service `
             -Name "kubelet" `
@@ -503,6 +514,14 @@ Resources:
             -DisplayName "kubelet" `
             -StartupType Manual `
             -Description "Kubernetes kubelet service"
+
+          # Manage kube-proxy as a Windows service
+          New-Service `
+            -Name "kube-proxy" `
+            -BinaryPathName $KubeProxyCommand `
+            -DisplayName "kube-proxy" `
+            -StartupType Manual `
+            -Description "Kubernetes kube-proxy service"
           </powershell>
 Outputs:
   PublicIp:
