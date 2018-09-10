@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
+  WindowsPassword:
+    Type: String
+    Description: The Administrator password
   InstanceTypeParameter:
     Type: String
     Default: t3.xlarge
@@ -225,6 +228,10 @@ Resources:
         Fn::Base64: !Sub |
           <powershell>
           # Based on https://docs.microsoft.com/en-us/virtualization/windowscontainers/kubernetes/getting-started-kubernetes-windows#preparing-a-windows-node
+
+          $user=[adsi]"WinNT://localhost/Administrator,user"
+          $user.SetPassword("${WindowsPassword}")
+          $user.SetInfo()
 
           $KubeDnsSuffix ="svc.cluster.local"
           $KubeDnsServiceIp="11.0.0.10"
