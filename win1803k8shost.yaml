@@ -9,7 +9,7 @@ Parameters:
     Description: Enter instance size. Default is t3.xlarge.
   AMI:
     Type: String
-    Default: ami-0b7b74ba8473ec232
+    Default: ami-04aa9dd58d1277860
     Description: AMI Image
   VpcId:
     Description: The VPC of the worker instances
@@ -389,11 +389,14 @@ Resources:
           # 7Zip is useful for extracting TAR files
           choco install 7zip -y
           # Chrome is used for local debugging
-          choco install googlechrome -y
+          #choco install googlechrome -y
           # For text editing
-          choco install notepadplusplus.install -y
+          #choco install notepadplusplus.install -y
           # Install Docker
-          choco install choco install docker-for-windows -y
+          #choco install choco install docker-for-windows -y
+
+          # Enable HyperV feature
+          #Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
 
           # Set path vars
           $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
@@ -454,8 +457,8 @@ Resources:
           "@
 
           # Build the pause image
-          docker pull microsoft/windowsservercore:1803
-          docker tag microsoft/windowsservercore:1803 microsoft/windowsservercore:latest
+          docker pull microsoft/windowsservercore:1709
+          docker tag microsoft/windowsservercore:1709 microsoft/windowsservercore:latest
           cd C:/k/
           docker build -t kubeletwin/pause .
 
