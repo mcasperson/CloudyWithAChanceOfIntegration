@@ -467,36 +467,36 @@ Resources:
           route -p add 169.254.169.254 mask 255.255.255.255 $gateway IF $ifIndex
 
           # Enable TLS12
-          #[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          #wget https://raw.githubusercontent.com/Microsoft/SDN/master/Kubernetes/windows/hns.psm1 -o c:\k\hns.psm1
-          #Import-Module c:\k\hns.psm1
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          wget https://raw.githubusercontent.com/Microsoft/SDN/master/Kubernetes/windows/hns.psm1 -o c:\k\hns.psm1
+          Import-Module c:\k\hns.psm1
 
           # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
-          #if(!(Get-HnsNetwork | ? Name -EQ "External"))
-          #{
-          #    New-HNSNetwork -Type $NetworkMode -AddressPrefix "192.168.255.0/30" -Gateway "192.168.255.1" -Name "External" -Verbose
-          #}
+          if(!(Get-HnsNetwork | ? Name -EQ "External"))
+          {
+              New-HNSNetwork -Type $NetworkMode -AddressPrefix "192.168.255.0/30" -Gateway "192.168.255.1" -Name "External" -Verbose
+          }
 
-          #$podGW = Get-PodGateway $PodCidr
-          #$hnsNetwork = Get-HnsNetwork | ? Name -EQ "host"
-          #if( !$hnsNetwork )
-          #{
-          #    $hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "host" -Verbose
-          #}
+          $podGW = Get-PodGateway $PodCidr
+          $hnsNetwork = Get-HnsNetwork | ? Name -EQ "host"
+          if( !$hnsNetwork )
+          {
+              $hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "host" -Verbose
+          }
 
-          #$podEndpointGW = Get-PodEndpointGateway $podCIDR
-          #$hnsEndpoint = New-HnsEndpoint -NetworkId $hnsNetwork.Id -Name $endpointName -IPAddress $podEndpointGW -Gateway "0.0.0.0" -Verbose
-          #Attach-HnsHostEndpoint -EndpointID $hnsEndpoint.Id -CompartmentID 1
+          $podEndpointGW = Get-PodEndpointGateway $podCIDR
+          $hnsEndpoint = New-HnsEndpoint -NetworkId $hnsNetwork.Id -Name $endpointName -IPAddress $podEndpointGW -Gateway "0.0.0.0" -Verbose
+          Attach-HnsHostEndpoint -EndpointID $hnsEndpoint.Id -CompartmentID 1
 
           # Setup forwarding
-          #netsh int ipv4 set int "$vnicName" for=en
+          netsh int ipv4 set int "$vnicName" for=en
 
-          #Start-Sleep 10
+          Start-Sleep 10
 
           # Build the CNI configuration
           # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
           # details on the contents of this file.
-          #Update-CNIConfig $PodCidr
+          Update-CNIConfig $PodCidr
 
           # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
           # Is this needed? We don't want to expose Octopus server to each other anyway.
