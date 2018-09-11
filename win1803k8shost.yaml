@@ -145,7 +145,7 @@ Resources:
   AssociateNodePort0:
     Type: AWS::EC2::EIPAssociation
     Properties:
-      AllocationId: !GetAtt NodeAddress.AllocationId
+      AllocationId: !GetAtt NodeAddress0.AllocationId
       NetworkInterfaceId: !Ref Eth0
 
   NodeAddress1:
@@ -206,37 +206,6 @@ Resources:
           VolumeSize: "250"
           VolumeType : "io1"
           Iops: "1500"
-      Tags:
-      -
-        Key: Appplication
-        Value: Windows Server 1803
-      -
-        Key: Domain
-        Value: None
-      -
-        Key: Environment
-        Value: Test
-      -
-        Key: LifeTime
-        Value: Transient
-      -
-        Key: Name
-        Value: Kubernete Windows Server 1803 Node
-      -
-        Key: OS
-        Value: Windows
-      -
-        Key: OwnerContact
-        Value: "#{Deployer Contact}"
-      -
-        Key: Purpose
-        Value: Support Test Instance
-      -
-        Key: Source
-        Value: CloudForation Script in Octopus Deploy
-      -
-        Key: scheduler:ec2-startstop
-        Value: false
       UserData:
         Fn::Base64: !Sub |
           <powershell>
@@ -424,15 +393,15 @@ Resources:
           [Environment]::SetEnvironmentVariable("KUBECONFIG", "C:\k\config", [EnvironmentVariableTarget]::Machine)
 
           # Download and extract binaries
-          wget https://dl.k8s.io/v1.10.7/kubernetes-node-windows-amd64.tar.gz -o c:\k\kubernetes-node-windows-amd64.tar.gz
-          wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-07-26/bin/windows/amd64/aws-iam-authenticator.exe -o c:\k\aws-iam-authenticator.exe
+          wget https://s3.amazonaws.com/hosted-kubernetes-node-support/kubernetes-node-windows-amd64.tar.gz -o c:\k\kubernetes-node-windows-amd64.tar.gz
+          wget https://s3.amazonaws.com/hosted-kubernetes-node-support/aws-iam-authenticator.exe -o c:\k\aws-iam-authenticator.exe
           tar -xzf c:\k\kubernetes-node-windows-amd64.tar.gz -C c:\k
           mv c:\k\kubernetes\node\bin\*.exe c:\k
           cd c:\k
           rm -recurse -force c:\k\kubernetes
 
           # Get the CNI plugin
-          wget https://github.com/Microsoft/SDN/raw/master/Kubernetes/windows/cni/wincni.exe -o c:\k\cni\wincni.exe
+          wget https://s3.amazonaws.com/hosted-kubernetes-node-support/wincni.exe -o c:\k\cni\wincni.exe
 
           # Get the cluster details
           $clusterEndpoint = & "C:\Program Files\Amazon\AWSCLI\aws" eks describe-cluster --name ${ClusterName} --query cluster.endpoint --output text --region ${AWS::Region}
@@ -571,6 +540,37 @@ Resources:
             -StartupType Manual `
             -Description "Kubernetes kube-proxy service"
           </powershell>
+      Tags:
+      -
+        Key: Appplication
+        Value: Windows Server 1803
+      -
+        Key: Domain
+        Value: None
+      -
+        Key: Environment
+        Value: Test
+      -
+        Key: LifeTime
+        Value: Transient
+      -
+        Key: Name
+        Value: Kubernete Windows Server 1803 Node
+      -
+        Key: OS
+        Value: Windows
+      -
+        Key: OwnerContact
+        Value: "#{Deployer Contact}"
+      -
+        Key: Purpose
+        Value: Support Test Instance
+      -
+        Key: Source
+        Value: CloudForation Script in Octopus Deploy
+      -
+        Key: scheduler:ec2-startstop
+        Value: false
 Outputs:
   PublicIp:
     Value:
