@@ -137,16 +137,29 @@ Resources:
       ToPort: 443
       FromPort: 443
 
-  NodeAddress:
+  NodeAddress0:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
 
-  AssociateNodePort:
+  AssociateNodePort0:
     Type: AWS::EC2::EIPAssociation
     Properties:
       AllocationId: !GetAtt NodeAddress.AllocationId
       NetworkInterfaceId: !Ref Eth0
+
+  NodeAddress1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  # Depending on how the routing is set up, internet traffic might go out on
+  # Eth1. It needs a public address to have internet access.
+  AssociateNodePort1:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt NodeAddress1.AllocationId
+      NetworkInterfaceId: !Ref Eth1
 
   Eth0:
     Type: AWS::EC2::NetworkInterface
@@ -229,14 +242,30 @@ Resources:
           <powershell>
           # Based on https://docs.microsoft.com/en-us/virtualization/windowscontainers/kubernetes/getting-started-kubernetes-windows#preparing-a-windows-node
 
+          # Set the windows credentials
           $user=[adsi]"WinNT://localhost/Administrator,user"
           $user.SetPassword("${WindowsPassword}")
           $user.SetInfo()
 
+          # Enable TLS12
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+          # Disable status bar for downloads
+          $progressPreference = 'silentlyContinue'
+
+          # prepare the k8s directory structure
+          mkdir c:\k
+          mkdir c:\k\cni
+          mkdir c:\k\cni\config
+
+          $PodCidr = "192.168.0.0/24"
           $KubeDnsSuffix ="svc.cluster.local"
           $KubeDnsServiceIp="11.0.0.10"
           $serviceCIDR="11.0.0.0/8"
-          $NetworkMode="nat"
+          $NetworkMode="L2Bridge"
+          $NetworkName="l2bridge"
+          $endpointName = "cbr0"
+          $vnicName = "vEthernet ($endpointName)"
 
           $WorkingDir = "c:\k"
           $CNIPath = [Io.path]::Combine($WorkingDir , "cni")
@@ -297,9 +326,15 @@ Resources:
               return [String]::Join(".", $DottedIP)
           }
 
-          function Get-MgmtSubnet($NetworkName)
+          function Get-MgmtIpAddress()
           {
-              $na = Get-NetAdapter | ? Name -Like "vEthernet ($NetworkName)"
+              $na = Get-NetAdapter | ? Name -Like "vEthernet (Ethernet*"
+              return (Get-NetIPAddress -InterfaceAlias $na.ifAlias -AddressFamily IPv4).IPAddress
+          }
+
+          function Get-MgmtSubnet
+          {
+              $na = Get-NetAdapter | ? Name -Like "vEthernet (Ethernet*"
               if (!$na) {
                 throw "Failed to find a suitable network adapter, check your network settings."
               }
@@ -310,13 +345,8 @@ Resources:
               return "$mgmtSubnet/$(ConvertTo-MaskLength $mask)"
           }
 
-          function Get-MgmtIpAddress($NetworkName)
-          {
-              $na = Get-NetAdapter | ? Name -Like "vEthernet ($NetworkName)"
-              return (Get-NetIPAddress -InterfaceAlias $na.ifAlias -AddressFamily IPv4).IPAddress
-          }
-
-          function Update-CNIConfig($podCIDR, $NetworkName)
+          function
+          Update-CNIConfig($podCIDR)
           {
               $jsonSampleConfig = '{
             "cniVersion": "0.2.0",
@@ -347,6 +377,7 @@ Resources:
               }
             ]
           }'
+              #Add-Content -Path $CNIConfig -Value $jsonSampleConfig
 
               $configJson =  ConvertFrom-Json $jsonSampleConfig
               $configJson.name = $NetworkMode.ToLower()
@@ -357,10 +388,10 @@ Resources:
 
               $configJson.AdditionalArgs[0].Value.ExceptionList[0] = $clusterCIDR
               $configJson.AdditionalArgs[0].Value.ExceptionList[1] = $serviceCIDR
-              $configJson.AdditionalArgs[0].Value.ExceptionList[2] = Get-MgmtSubnet $NetworkName
+              $configJson.AdditionalArgs[0].Value.ExceptionList[2] = Get-MgmtSubnet
 
               $configJson.AdditionalArgs[1].Value.DestinationPrefix  = $serviceCIDR
-              $configJson.AdditionalArgs[2].Value.DestinationPrefix  = "$(Get-MgmtIpAddress $NetworkName)/32"
+              $configJson.AdditionalArgs[2].Value.DestinationPrefix  = "$(Get-MgmtIpAddress)/32"
 
               if (Test-Path $CNIConfig) {
                   Clear-Content -Path $CNIConfig
@@ -375,9 +406,6 @@ Resources:
           while (!$(Test-Connection -ComputerName "google.com" -Quiet)) {
             Start-Sleep 5
           }
-
-          # Enable TLS12
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
           # Install chocolatey
           Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -394,10 +422,6 @@ Resources:
           # Set k8s vars
           $env:KUBECONFIG="C:\k\config"
           [Environment]::SetEnvironmentVariable("KUBECONFIG", "C:\k\config", [EnvironmentVariableTarget]::Machine)
-
-          mkdir c:\k
-          mkdir c:\k\cni
-          mkdir c:\k\cni\config
 
           # Download and extract binaries
           wget https://dl.k8s.io/v1.10.7/kubernetes-node-windows-amd64.tar.gz -o c:\k\kubernetes-node-windows-amd64.tar.gz
@@ -473,21 +497,37 @@ Resources:
           # Direct traffic to the Metadata service via the second nic
           route -p add 169.254.169.254 mask 255.255.255.255 $gateway IF $ifIndex
 
-          # Create the network called "host"
-          # This solves the error "Network host not found". I think you should be able
-          # to change the name of this network with an environment variable, but haven't
-          # found the exact setting.
-          $NetworkName = docker network create -d nat host
+          # Enable TLS12
+          #[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          #wget https://raw.githubusercontent.com/Microsoft/SDN/master/Kubernetes/windows/hns.psm1 -o c:\k\hns.psm1
+          #Import-Module c:\k\hns.psm1
 
           # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
-          # This might have something to do with using kube-proxy in kernelspace mode.
-          # For now don't do this, as userspace mode will do.
-          #docker network create -d l2bridge --gateway $gateway --subnet "$gateway/30"
+          #if(!(Get-HnsNetwork | ? Name -EQ "External"))
+          #{
+          #    New-HNSNetwork -Type $NetworkMode -AddressPrefix "192.168.255.0/30" -Gateway "192.168.255.1" -Name "External" -Verbose
+          #}
+
+          #$podGW = Get-PodGateway $PodCidr
+          #$hnsNetwork = Get-HnsNetwork | ? Name -EQ "host"
+          #if( !$hnsNetwork )
+          #{
+          #    $hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "host" -Verbose
+          #}
+
+          #$podEndpointGW = Get-PodEndpointGateway $podCIDR
+          #$hnsEndpoint = New-HnsEndpoint -NetworkId $hnsNetwork.Id -Name $endpointName -IPAddress $podEndpointGW -Gateway "0.0.0.0" -Verbose
+          #Attach-HnsHostEndpoint -EndpointID $hnsEndpoint.Id -CompartmentID 1
+
+          # Setup forwarding
+          #netsh int ipv4 set int "$vnicName" for=en
+
+          #Start-Sleep 10
 
           # Build the CNI configuration
           # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
           # details on the contents of this file.
-          Update-CNIConfig "192.168.0.0/24" $NetworkName.Substring(0, 15)
+          #Update-CNIConfig $PodCidr
 
           # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
           # Is this needed? We don't want to expose Octopus server to each other anyway.
@@ -504,8 +544,7 @@ Resources:
               --kubeconfig=c:\k\config --hairpin-mode=promiscuous-bridge ``
               --image-pull-progress-deadline=20m --cgroups-per-qos=false ``
               --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" ``
-              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" ``
-              --register-with-taints="os=windows:NoSchedule"
+              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config"
           "@
 
           # Proxy mode kernelspace fails, but userspace works ok
