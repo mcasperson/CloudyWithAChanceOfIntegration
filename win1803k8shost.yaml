@@ -227,6 +227,7 @@ Resources:
           mkdir c:\k\cni
           mkdir c:\k\cni\config
 
+          $WindowsVersion="1709"
           # Todo: This needs to be the CIDR of the l2bridge network
           $PodCidr = "10.4.4.0/24"
           # Todo: This needs to be the CIDR of the node
@@ -452,13 +453,13 @@ Resources:
 
           # Create the docker file
           Set-Content -Path Dockerfile -Value @"
-          FROM microsoft/nanoserver:1803
+          FROM microsoft/nanoserver:$WindowsVersion
           CMD cmd /c ping -t localhost
           "@
 
           # Build the pause image
-          docker pull microsoft/windowsservercore:1709
-          docker tag microsoft/windowsservercore:1709 microsoft/windowsservercore:latest
+          docker pull microsoft/windowsservercore:$WindowsVersion
+          docker tag microsoft/windowsservercore:$WindowsVersion microsoft/windowsservercore:latest
           cd C:/k/
           docker build -t kubeletwin/pause .
 
