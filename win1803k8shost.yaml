@@ -227,7 +227,10 @@ Resources:
           mkdir c:\k\cni
           mkdir c:\k\cni\config
 
-          $PodCidr = "192.168.0.0/24"
+          # Todo: This needs to be the CIDR of the l2bridge network
+          $PodCidr = "10.4.4.0/24"
+          # Todo: This needs to be the CIDR of the node
+          $clusterCIDR="192.168.128.1/18"
           $KubeDnsSuffix ="svc.cluster.local"
           $KubeDnsServiceIp="11.0.0.10"
           $serviceCIDR="11.0.0.0/8"
@@ -478,13 +481,13 @@ Resources:
           }
 
           $podGW = Get-PodGateway $PodCidr
-          $hnsNetwork = Get-HnsNetwork | ? Name -EQ "host"
+          $hnsNetwork = Get-HnsNetwork | ? Name -EQ $NetworkMode.ToLower()
           if( !$hnsNetwork )
           {
-              $hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "host" -Verbose
+              $hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name $NetworkMode.ToLower() -Verbose
           }
 
-          $podEndpointGW = Get-PodEndpointGateway $podCIDR
+          $podEndpointGW = Get-PodEndpointGateway $PodCidr
           $hnsEndpoint = New-HnsEndpoint -NetworkId $hnsNetwork.Id -Name $endpointName -IPAddress $podEndpointGW -Gateway "0.0.0.0" -Verbose
           Attach-HnsHostEndpoint -EndpointID $hnsEndpoint.Id -CompartmentID 1
 
