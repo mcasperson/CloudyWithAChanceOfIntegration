@@ -9,7 +9,7 @@ Parameters:
     Description: Enter instance size. Default is t3.xlarge.
   AMI:
     Type: String
-    Default: ami-0a730289c7c16e141
+    Default: ami-0f3afb04ebe652ee4
     Description: AMI Image
   VpcId:
     Description: The VPC of the worker instances
@@ -546,7 +546,7 @@ Resources:
       Tags:
       -
         Key: Appplication
-        Value: Windows Server 1803
+        Value: Windows Server
       -
         Key: Domain
         Value: None
@@ -558,7 +558,7 @@ Resources:
         Value: Transient
       -
         Key: Name
-        Value: Kubernete Windows Server 1803 Node
+        Value: Kubernete Windows Server Node
       -
         Key: OS
         Value: Windows
