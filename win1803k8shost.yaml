@@ -9,7 +9,7 @@ Parameters:
     Description: Enter instance size. Default is t3.xlarge.
   AMI:
     Type: String
-    Default: ami-0f3afb04ebe652ee4
+    Default: ami-0b7b74ba8473ec232
     Description: AMI Image
   VpcId:
     Description: The VPC of the worker instances
@@ -386,6 +386,14 @@ Resources:
           choco install vim -y
           # Need the AWS CLI
           choco install awscli -y
+          # 7Zip is useful for extracting TAR files
+          choco install 7zip -y
+          # Chrome is used for local debugging
+          choco install googlechrome -y
+          # For text editing
+          choco install notepadplusplus.install -y
+          # Install Docker
+          choco install choco install docker-for-windows -y
 
           # Set path vars
           $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
@@ -398,9 +406,10 @@ Resources:
           # Download and extract binaries
           wget https://s3.amazonaws.com/hosted-kubernetes-node-support/kubernetes-node-windows-amd64.tar.gz -o c:\k\kubernetes-node-windows-amd64.tar.gz
           wget https://s3.amazonaws.com/hosted-kubernetes-node-support/aws-iam-authenticator.exe -o c:\k\aws-iam-authenticator.exe
-          tar -xzf c:\k\kubernetes-node-windows-amd64.tar.gz -C c:\k
-          mv c:\k\kubernetes\node\bin\*.exe c:\k
           cd c:\k
+          7z x .\kubernetes-node-windows-amd64.tar.gz
+          7z x -aoa  -ttar kubernetes-node-windows-amd64.tar
+          mv c:\k\kubernetes\node\bin\*.exe c:\k
           rm -recurse -force c:\k\kubernetes
 
           # Get the CNI plugin
