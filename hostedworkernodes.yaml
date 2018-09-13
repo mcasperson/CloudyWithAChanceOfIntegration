@@ -45,7 +45,7 @@ Parameters:
     Type: String
   BootstrapArguments:
     Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
-    Default: "--kubelet-extra-args '--register-with-taints=\"os=windows:NoSchedule\"'"
+    Default: "--kubelet-extra-args '--register-with-taints=\"os=linux:NoSchedule\"'"
     Type: String
 
 Resources:
