@@ -24,6 +24,30 @@ Parameters:
     Description: The security group of the cluster control plane.
     Type: AWS::EC2::SecurityGroup::Id
 
+  NodeImageId:
+    Type: AWS::EC2::Image::Id
+    Description: AMI id for the Linux node instances.
+    Default: ami-0b2ae3c6bda8b5c06
+  NodeAutoScalingGroupMinSize:
+    Type: Number
+    Description: Minimum size of Node Group ASG.
+    Default: 1
+  NodeAutoScalingGroupMaxSize:
+    Type: Number
+    Description: Maximum size of Node Group ASG.
+    Default: 3
+  NodeVolumeSize:
+    Type: Number
+    Description: Node volume size
+    Default: 20
+  NodeGroupName:
+    Description: Unique identifier for the Node Group.
+    Type: String
+  BootstrapArguments:
+    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
+    Default: ""
+    Type: String
+
 Resources:
   NodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -70,6 +94,17 @@ Resources:
       IpProtocol: tcp
       FromPort: 3389
       ToPort: 3389
+
+  SSH:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow RDP connections
+      GroupId: !Ref NodeSecurityGroup
+      CidrIp: '0.0.0.0/0'
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
 
   NodeSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -233,8 +268,8 @@ Resources:
           # Todo: This needs to be the CIDR of the node
           $clusterCIDR="192.168.128.1/18"
           $KubeDnsSuffix ="svc.cluster.local"
-          $KubeDnsServiceIp="11.0.0.10"
-          $serviceCIDR="11.0.0.0/8"
+          $KubeDnsServiceIp="10.100.0.10"
+          $serviceCIDR="10.100.0.0/16"
           $NetworkMode="L2Bridge"
           $NetworkName="l2bridge"
           $endpointName = "cbr0"
@@ -398,6 +433,8 @@ Resources:
 
           # Enable HyperV feature
           #Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
+          # Enable bash
+          Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
 
           # Set path vars
           $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
@@ -587,6 +624,55 @@ Resources:
       -
         Key: scheduler:ec2-startstop
         Value: false
+
+  NodeGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: !Ref NodeAutoScalingGroupMinSize
+      LaunchConfigurationName: !Ref NodeLaunchConfig
+      MinSize: !Ref NodeAutoScalingGroupMinSize
+      MaxSize: !Ref NodeAutoScalingGroupMaxSize
+      VPCZoneIdentifier:
+        !Ref Subnets
+      Tags:
+      - Key: Name
+        Value: !Sub "${ClusterName}-${NodeGroupName}-Node"
+        PropagateAtLaunch: 'true'
+      - Key: !Sub 'kubernetes.io/cluster/${ClusterName}'
+        Value: 'owned'
+        PropagateAtLaunch: 'true'
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+
+  NodeLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      IamInstanceProfile: !Ref NodeInstanceProfile
+      ImageId: !Ref NodeImageId
+      # The linux instances are only hosting util apps, and so can be small
+      InstanceType: "t3.small"
+      KeyName: DukeLegion
+      SecurityGroups:
+      - !Ref NodeSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvda
+        Ebs:
+          VolumeSize: !Ref NodeVolumeSize
+          VolumeType: gp2
+          DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash
+          set -o xtrace
+          /etc/eks/bootstrap.sh ${ClusterName} ${BootstrapArguments}
+          /opt/aws/bin/cfn-signal --exit-code $? \
+                   --stack  ${AWS::StackName} \
+                   --resource NodeGroup  \
+                   --region ${AWS::Region}
 Outputs:
   PublicIp:
     Value:
