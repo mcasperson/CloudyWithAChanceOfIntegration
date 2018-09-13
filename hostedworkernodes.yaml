@@ -653,7 +653,10 @@ Resources:
       IamInstanceProfile: !Ref NodeInstanceProfile
       ImageId: !Ref NodeImageId
       # The linux instances are only hosting util apps, and so can be small
-      InstanceType: "t3.small"
+      # Beware, only certain types of instances work properly
+      # See https://github.com/awslabs/amazon-eks-ami/issues/27,
+      # https://github.com/awslabs/amazon-eks-ami/issues/47
+      InstanceType: "t2.small"
       KeyName: DukeLegion
       SecurityGroups:
       - !Ref NodeSecurityGroup
