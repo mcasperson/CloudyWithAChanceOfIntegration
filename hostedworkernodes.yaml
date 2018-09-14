@@ -370,7 +370,7 @@ Resources:
                }]
             },
             "dns" : {
-              "Nameservers" : [ "11.0.0.10" ],
+              "Nameservers" : [ "11.0.0.10", "8.8.8.8", "8.8.4.4" ],
               "Search": [ "svc.cluster.local" ]
             },
             "AdditionalArgs" : [
@@ -566,7 +566,8 @@ Resources:
               --kubeconfig=c:\k\config --hairpin-mode=promiscuous-bridge ``
               --image-pull-progress-deadline=20m --cgroups-per-qos=false ``
               --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" ``
-              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config"
+              --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" ``
+              --pod-cidr=$PodCidr
           "@
 
           # Proxy mode kernelspace fails, but userspace works ok
