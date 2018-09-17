@@ -370,7 +370,7 @@ Resources:
                }]
             },
             "dns" : {
-              "Nameservers" : [ "11.0.0.10", "8.8.8.8", "8.8.4.4" ],
+              "Nameservers" : [ "8.8.8.8", "8.8.4.4", "10.100.0.10" ],
               "Search": [ "svc.cluster.local" ]
             },
             "AdditionalArgs" : [
@@ -391,7 +391,7 @@ Resources:
               $configJson.name = $NetworkMode.ToLower()
               $configJson.ipam.subnet=$podCIDR
               $configJson.ipam.routes[0].GW = Get-PodEndpointGateway $podCIDR
-              $configJson.dns.Nameservers[0] = $KubeDnsServiceIp
+              $configJson.dns.Nameservers[2] = $KubeDnsServiceIp
               $configJson.dns.Search[0] = $KubeDnsSuffix
 
               $configJson.AdditionalArgs[0].Value.ExceptionList[0] = $clusterCIDR
