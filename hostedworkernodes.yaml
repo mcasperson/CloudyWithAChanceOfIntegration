@@ -571,8 +571,11 @@ Resources:
           "@
 
           # Proxy mode kernelspace fails, but userspace works ok
+          $env:KUBE_NETWORK=$NetworkMode.ToLower()
+          [Environment]::SetEnvironmentVariable("KUBE_NETWORK", $NetworkMode.ToLower(), [EnvironmentVariableTarget]::Machine)
           $KubeProxyCommand = @"
-            c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
+          $env:INTERFACE_TO_ADD_SERVICE_IP=$vnicName
+          c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
           "@
 
           Set-Content -Path c:\k\start-kubelet.ps1 -Value $KubeletCommand
