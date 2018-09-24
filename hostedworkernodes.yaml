@@ -264,7 +264,7 @@ Resources:
 
           $WindowsVersion="1709"
           # Todo: This needs to be the CIDR of the l2bridge network
-          $PodCidr = "10.4.4.0/24"
+          $PodCidr = "10.0.0.0/24"
           # Todo: This needs to be the CIDR of the node
           $clusterCIDR="192.168.128.1/18"
           $KubeDnsSuffix ="svc.cluster.local"
@@ -570,9 +570,11 @@ Resources:
               --pod-cidr=$PodCidr
           "@
 
-          # Proxy mode kernelspace fails, but userspace works ok
+          # Point the kube-proxy to the custom bridge
           $env:KUBE_NETWORK=$NetworkMode.ToLower()
           [Environment]::SetEnvironmentVariable("KUBE_NETWORK", $NetworkMode.ToLower(), [EnvironmentVariableTarget]::Machine)
+
+          # Proxy mode kernelspace fails, but userspace works ok
           $KubeProxyCommand = @"
           $env:INTERFACE_TO_ADD_SERVICE_IP=$vnicName
           c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
