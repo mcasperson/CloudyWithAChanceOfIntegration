@@ -424,17 +424,14 @@ Resources:
           choco install awscli -y
           # 7Zip is useful for extracting TAR files
           choco install 7zip -y
-          # Chrome is used for local debugging
-          #choco install googlechrome -y
-          # For text editing
-          #choco install notepadplusplus.install -y
-          # Install Docker
-          #choco install choco install docker-for-windows -y
+
+          # Install telnet for debugging
+          Install-WindowsFeature -name Telnet-Client
 
           # Enable HyperV feature
           #Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
           # Enable bash
-          Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+          #Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
 
           # Set path vars
           $env:Path += ";C:\k;C:\Program Files\Amazon\AWSCLI\;C:\Program Files (x86)\vim\vim80"
@@ -576,7 +573,7 @@ Resources:
 
           # Proxy mode kernelspace fails, but userspace works ok
           $KubeProxyCommand = @"
-          $env:INTERFACE_TO_ADD_SERVICE_IP=$vnicName
+          `$env:INTERFACE_TO_ADD_SERVICE_IP="$vnicName"
           c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
           "@
 
