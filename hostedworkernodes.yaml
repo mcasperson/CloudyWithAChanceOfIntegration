@@ -521,6 +521,9 @@ Resources:
           # Enable TLS12
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           wget https://raw.githubusercontent.com/Microsoft/SDN/master/Kubernetes/windows/hns.psm1 -o c:\k\hns.psm1
+
+
+          $NetworkSetup = @"
           Import-Module c:\k\hns.psm1
 
           # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
@@ -529,21 +532,23 @@ Resources:
               New-HNSNetwork -Type $NetworkMode -AddressPrefix "192.168.255.0/30" -Gateway "192.168.255.1" -Name "External" -Verbose
           }
 
-          $podGW = Get-PodGateway $PodCidr
-          $hnsNetwork = Get-HnsNetwork | ? Name -EQ $NetworkMode.ToLower()
-          if( !$hnsNetwork )
+          `$hnsNetwork = Get-HnsNetwork | ? Name -EQ "$($NetworkMode.ToLower())"
+          if( !`$hnsNetwork )
           {
-              $hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name $NetworkMode.ToLower() -Verbose
+              `$podGW = Get-PodGateway $PodCidr
+              `$hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "$($NetworkMode.ToLower())" -Verbose
           }
 
-          $podEndpointGW = Get-PodEndpointGateway $PodCidr
-          $hnsEndpoint = New-HnsEndpoint -NetworkId $hnsNetwork.Id -Name $endpointName -IPAddress $podEndpointGW -Gateway "0.0.0.0" -Verbose
-          Attach-HnsHostEndpoint -EndpointID $hnsEndpoint.Id -CompartmentID 1
+          `$hnsEndpoint = Get-HnsEndpoint | ? Name -eq $endpointName
+          if (!`$hnsEndpoint) {
+            `$podEndpointGW = Get-PodEndpointGateway $PodCidr
+            `$hnsEndpoint = New-HnsEndpoint -NetworkId `$hnsNetwork.Id -Name $endpointName -IPAddress `$podEndpointGW -Gateway "0.0.0.0" -Verbose
+            Attach-HnsHostEndpoint -EndpointID `$hnsEndpoint.Id -CompartmentID 1
+          }
 
           # Setup forwarding
           netsh int ipv4 set int "$vnicName" for=en
-
-          Start-Sleep 10
+          "@
 
           # Build the CNI configuration
           # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
@@ -558,6 +563,7 @@ Resources:
           # The command to start kubelet
           $Hostname = $(& curl -UseBasicParsing http://169.254.169.254/latest/meta-data/local-hostname).Content
           $KubeletCommand = @"
+            c:\k\configure-network.ps1
             c:\k\kubelet.exe --hostname-override=$Hostname --v=6 ``
               --pod-infra-container-image=kubeletwin/pause --resolv-conf="" ``
               --allow-privileged=true --enable-debugging-handlers ``
@@ -576,29 +582,17 @@ Resources:
 
           # Proxy mode kernelspace fails, but userspace works ok
           $KubeProxyCommand = @"
+          c:\k\configure-network.ps1
           `$env:INTERFACE_TO_ADD_SERVICE_IP="$vnicName"
           c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
           wmic process where name="kube-proxy.exe" CALL setpriority "high priority"
           "@
 
+          Set-Content -Path c:\k\configure-network.ps1 -Value $NetworkSetup
           Set-Content -Path c:\k\start-kubelet.ps1 -Value $KubeletCommand
           Set-Content -Path c:\k\start-kube-proxy.ps1 -Value $KubeProxyCommand
 
-          # Manage kubelet as a Windows service
-          New-Service `
-            -Name "kubelet" `
-            -BinaryPathName $KubeletCommand `
-            -DisplayName "kubelet" `
-            -StartupType Manual `
-            -Description "Kubernetes kubelet service"
-
-          # Manage kube-proxy as a Windows service
-          New-Service `
-            -Name "kube-proxy" `
-            -BinaryPathName $KubeProxyCommand `
-            -DisplayName "kube-proxy" `
-            -StartupType Manual `
-            -Description "Kubernetes kube-proxy service"
+          c:\k\configure-network.ps1
           </powershell>
       Tags:
       -
