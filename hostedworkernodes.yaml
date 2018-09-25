@@ -534,7 +534,6 @@ Resources:
               --log-dir=c:\k --logtostderr=false --enforce-node-allocatable="" ``
               --network-plugin=cni --cni-bin-dir="c:\k\cni" --cni-conf-dir "c:\k\cni\config" ``
               --pod-cidr=$PodCidr
-            wmic process where name="kubelet.exe" CALL setpriority "high priority"
           "@
 
           # Point the kube-proxy to the custom bridge
@@ -546,6 +545,10 @@ Resources:
           c:\k\configure-network.ps1
           `$env:INTERFACE_TO_ADD_SERVICE_IP="$vnicName"
           c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
+          "@
+
+          $KubePriority = @"
+          wmic process where name="kubelet.exe" CALL setpriority "high priority"
           wmic process where name="kube-proxy.exe" CALL setpriority "high priority"
           "@
 
@@ -589,6 +592,7 @@ Resources:
           "@
 
           Set-Content -Path c:\k\configure-network.ps1 -Value $NetworkSetup
+          Set-Content -Path c:\k\configure-priorities.ps1 -Value $KubePriority
           Set-Content -Path c:\k\start-kubelet.ps1 -Value $KubeletCommand
           Set-Content -Path c:\k\start-kube-proxy.ps1 -Value $KubeProxyCommand
 
