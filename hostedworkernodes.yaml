@@ -262,7 +262,7 @@ Resources:
           mkdir c:\k\cni
           mkdir c:\k\cni\config
 
-          $WindowsVersion="1709"
+          $WindowsVersion="1803"
           # Todo: This needs to be the CIDR of the l2bridge network
           $PodCidr = "10.0.0.0/24"
           # Todo: This needs to be the CIDR of the node
@@ -522,11 +522,6 @@ Resources:
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           wget https://raw.githubusercontent.com/Microsoft/SDN/master/Kubernetes/windows/hns.psm1 -o c:\k\hns.psm1
 
-          # Build the CNI configuration
-          # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
-          # details on the contents of this file.
-          Update-CNIConfig $PodCidr
-
           # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
           # Is this needed? We don't want to expose Octopus server to each other anyway.
           # https://github.com/andyzhangx/Demo/blob/master/acs-engine/deployment/windows/kubeletstart.ps1
@@ -604,6 +599,13 @@ Resources:
           Set-Content -Path c:\k\start-kube-proxy.ps1 -Value $KubeProxyCommand
 
           c:\k\configure-network.ps1
+
+          Start-Sleep 10
+
+          # Build the CNI configuration
+          # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
+          # details on the contents of this file.
+          Update-CNIConfig $PodCidr
           </powershell>
       Tags:
       -
