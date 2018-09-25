@@ -493,12 +493,6 @@ Resources:
           CMD cmd /c ping -t localhost
           "@
 
-          # Build the pause image
-          docker pull microsoft/windowsservercore:$WindowsVersion
-          docker tag microsoft/windowsservercore:$WindowsVersion microsoft/windowsservercore:latest
-          cd C:/k/
-          docker build -t kubeletwin/pause .
-
           # Get the second nic details
           $ifIndex = Get-NetAdapter -Name "*" |
             ? {$_.Name -like "Ethernet *"} |
@@ -579,13 +573,13 @@ Resources:
           `$hnsNetwork = Get-HnsNetwork | ? Name -EQ "$($NetworkMode.ToLower())"
           if( !`$hnsNetwork )
           {
-              `$podGW = Get-PodGateway $PodCidr
-              `$hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "$($NetworkMode.ToLower())" -Verbose
+              `$podGW = Get-PodGateway "$PodCidr"
+              `$hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix "$PodCidr" -Gateway `$podGW -Name "$($NetworkMode.ToLower())" -Verbose
           }
 
           `$hnsEndpoint = Get-HnsEndpoint | ? Name -eq $endpointName
           if (!`$hnsEndpoint) {
-            `$podEndpointGW = Get-PodEndpointGateway $PodCidr
+            `$podEndpointGW = Get-PodEndpointGateway "$PodCidr"
             `$hnsEndpoint = New-HnsEndpoint -NetworkId `$hnsNetwork.Id -Name $endpointName -IPAddress `$podEndpointGW -Gateway "0.0.0.0" -Verbose
             Attach-HnsHostEndpoint -EndpointID `$hnsEndpoint.Id -CompartmentID 1
           }
@@ -606,6 +600,12 @@ Resources:
           # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
           # details on the contents of this file.
           Update-CNIConfig $PodCidr
+
+          # Build the pause image
+          docker pull microsoft/windowsservercore:$WindowsVersion
+          docker tag microsoft/windowsservercore:$WindowsVersion microsoft/windowsservercore:latest
+          cd C:/k/
+          docker build -t kubeletwin/pause .
           </powershell>
       Tags:
       -
