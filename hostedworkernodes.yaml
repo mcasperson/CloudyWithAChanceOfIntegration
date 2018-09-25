@@ -567,7 +567,7 @@ Resources:
           function Get-PodEndpointGateway(`$podCIDR)
           {
               # Current limitation of Platform to not use .1 ip, since it is reserved
-              return $podCIDR.substring(0,`$podCIDR.lastIndexOf(".")) + ".2"
+              return `$podCIDR.substring(0,`$podCIDR.lastIndexOf(".")) + ".2"
           }
 
           # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
