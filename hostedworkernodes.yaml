@@ -424,6 +424,8 @@ Resources:
           choco install awscli -y
           # 7Zip is useful for extracting TAR files
           choco install 7zip -y
+          # Install sysinternals
+          choco install sysinternals -y
 
           # Install telnet for debugging
           Install-WindowsFeature -name Telnet-Client
