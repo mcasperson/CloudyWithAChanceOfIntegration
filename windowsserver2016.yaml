@@ -127,6 +127,9 @@ Resources:
           Enable-WindowsOptionalFeature -Online -FeatureName IIS-ISAPIExtensions
           Enable-WindowsOptionalFeature -Online -FeatureName IIS-ISAPIFilter
           Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpCompressionStatic
+          Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          choco install googlechrome
+          choco install notepadplusplus.install 
           </powershell>
       Tags:
         -
