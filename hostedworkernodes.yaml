@@ -262,7 +262,7 @@ Resources:
           mkdir c:\k\cni
           mkdir c:\k\cni\config
 
-          $WindowsVersion="1709"
+          $WindowsVersion="1803"
           # Todo: This needs to be the CIDR of the l2bridge network
           $PodCidr = "10.0.0.0/24"
           # Todo: This needs to be the CIDR of the node
@@ -493,12 +493,6 @@ Resources:
           CMD cmd /c ping -t localhost
           "@
 
-          # Build the pause image
-          docker pull microsoft/windowsservercore:$WindowsVersion
-          docker tag microsoft/windowsservercore:$WindowsVersion microsoft/windowsservercore:latest
-          cd C:/k/
-          docker build -t kubeletwin/pause .
-
           # Get the second nic details
           $ifIndex = Get-NetAdapter -Name "*" |
             ? {$_.Name -like "Ethernet *"} |
@@ -521,39 +515,6 @@ Resources:
           # Enable TLS12
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           wget https://raw.githubusercontent.com/Microsoft/SDN/master/Kubernetes/windows/hns.psm1 -o c:\k\hns.psm1
-
-
-          $NetworkSetup = @"
-          Import-Module c:\k\hns.psm1
-
-          # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
-          if(!(Get-HnsNetwork | ? Name -EQ "External"))
-          {
-              New-HNSNetwork -Type $NetworkMode -AddressPrefix "192.168.255.0/30" -Gateway "192.168.255.1" -Name "External" -Verbose
-          }
-
-          `$hnsNetwork = Get-HnsNetwork | ? Name -EQ "$($NetworkMode.ToLower())"
-          if( !`$hnsNetwork )
-          {
-              `$podGW = Get-PodGateway $PodCidr
-              `$hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix $PodCidr -Gateway $podGW -Name "$($NetworkMode.ToLower())" -Verbose
-          }
-
-          `$hnsEndpoint = Get-HnsEndpoint | ? Name -eq $endpointName
-          if (!`$hnsEndpoint) {
-            `$podEndpointGW = Get-PodEndpointGateway $PodCidr
-            `$hnsEndpoint = New-HnsEndpoint -NetworkId `$hnsNetwork.Id -Name $endpointName -IPAddress `$podEndpointGW -Gateway "0.0.0.0" -Verbose
-            Attach-HnsHostEndpoint -EndpointID `$hnsEndpoint.Id -CompartmentID 1
-          }
-
-          # Setup forwarding
-          netsh int ipv4 set int "$vnicName" for=en
-          "@
-
-          # Build the CNI configuration
-          # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
-          # details on the contents of this file.
-          Update-CNIConfig $PodCidr
 
           # Turn off Firewall to enable pods to talk to service endpoints. (Kubelet should eventually do this)
           # Is this needed? We don't want to expose Octopus server to each other anyway.
@@ -586,11 +547,69 @@ Resources:
           c:\k\kube-proxy.exe --v=4 --proxy-mode=userspace --hostname-override=$Hostname --kubeconfig=c:\k\config
           "@
 
+          $KubePriority = @"
+          wmic process where name="kubelet.exe" CALL setpriority "high priority"
+          wmic process where name="kube-proxy.exe" CALL setpriority "high priority"
+          "@
+
+          $NetworkSetup = @"
+          Import-Module c:\k\hns.psm1
+
+          function Get-PodGateway(`$podCIDR)
+          {
+              # Current limitation of Platform to not use .1 ip, since it is reserved
+              return `$podCIDR.substring(0,`$podCIDR.lastIndexOf(".")) + ".1"
+          }
+
+          function Get-PodEndpointGateway(`$podCIDR)
+          {
+              # Current limitation of Platform to not use .1 ip, since it is reserved
+              return `$podCIDR.substring(0,`$podCIDR.lastIndexOf(".")) + ".2"
+          }
+
+          # The microsoft scripts create a l2bridge network to "trigger a vSwitch creation".
+          if(!(Get-HnsNetwork | ? Name -EQ "External"))
+          {
+              New-HNSNetwork -Type $NetworkMode -AddressPrefix "192.168.255.0/30" -Gateway "192.168.255.1" -Name "External" -Verbose
+          }
+
+          `$hnsNetwork = Get-HnsNetwork | ? Name -EQ "$($NetworkMode.ToLower())"
+          if( !`$hnsNetwork )
+          {
+              `$podGW = Get-PodGateway "$PodCidr"
+              `$hnsNetwork = New-HNSNetwork -Type $NetworkMode -AddressPrefix "$PodCidr" -Gateway `$podGW -Name "$($NetworkMode.ToLower())" -Verbose
+          }
+
+          `$hnsEndpoint = Get-HnsEndpoint | ? Name -eq $endpointName
+          if (!`$hnsEndpoint) {
+            `$podEndpointGW = Get-PodEndpointGateway "$PodCidr"
+            `$hnsEndpoint = New-HnsEndpoint -NetworkId `$hnsNetwork.Id -Name $endpointName -IPAddress `$podEndpointGW -Gateway "0.0.0.0" -Verbose
+            Attach-HnsHostEndpoint -EndpointID `$hnsEndpoint.Id -CompartmentID 1
+          }
+
+          # Setup forwarding
+          netsh int ipv4 set int "$vnicName" for=en
+          "@
+
           Set-Content -Path c:\k\configure-network.ps1 -Value $NetworkSetup
+          Set-Content -Path c:\k\configure-priorities.ps1 -Value $KubePriority
           Set-Content -Path c:\k\start-kubelet.ps1 -Value $KubeletCommand
           Set-Content -Path c:\k\start-kube-proxy.ps1 -Value $KubeProxyCommand
 
           c:\k\configure-network.ps1
+
+          Start-Sleep 10
+
+          # Build the CNI configuration
+          # https://kubernetes.io/docs/getting-started-guides/windows/#windows-host-setup has some
+          # details on the contents of this file.
+          Update-CNIConfig $PodCidr
+
+          # Build the pause image
+          docker pull microsoft/windowsservercore:$WindowsVersion
+          docker tag microsoft/windowsservercore:$WindowsVersion microsoft/windowsservercore:latest
+          cd C:/k/
+          docker build -t kubeletwin/pause .
           </powershell>
       Tags:
       -

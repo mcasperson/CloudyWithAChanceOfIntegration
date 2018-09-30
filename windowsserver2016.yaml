@@ -94,6 +94,46 @@ Resources:
       KeyName: DukeLegion
       SecurityGroups:
         - Ref: InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          <powershell>
+          Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          choco install googlechrome -y
+          choco install notepadplusplus.install -y
+          choco install octopusdeploy.tentacle -y
+          choco install jre8 -y
+          choco install tomcat -y
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-WebServerRole
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-WebServer
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-CommonHttpFeatures
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-HttpErrors
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-HttpRedirect
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ApplicationDevelopment
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-NetFxExtensibility45
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-HealthAndDiagnostics
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-HttpLogging
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-LoggingLibraries
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-RequestMonitor
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-HttpTracing
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-Security
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-RequestFiltering
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-Performance
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-WebServerManagementTools
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-IIS6ManagementCompatibility
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-Metabase
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ManagementConsole
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-BasicAuthentication
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-WindowsAuthentication
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-StaticContent
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-DefaultDocument
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-WebSockets
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ApplicationInit
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-NetFxExtensibility45
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ASPNET45
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ISAPIExtensions
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ISAPIFilter
+          Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-HttpCompressionStatic
+          </powershell>
       Tags:
         -
           Key: Appplication
