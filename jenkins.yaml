@@ -80,7 +80,7 @@ Resources:
   Jenkins:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0212d46f
+      ImageId: ami-0fe028b8d59eb3545
       InstanceType:
         Ref: InstanceTypeParameter
       KeyName: DukeLegion
