@@ -131,8 +131,8 @@ Resources:
           sudo apt-get install dotnet-sdk-2.1 -y
   ElasticIP:
     Type: AWS::EC2::EIP
-      Properties:
-        InstanceId: !Ref Jenkins
+    Properties:
+      InstanceId: !Ref Jenkins
 Outputs:
   PublicIp:
     Value:
