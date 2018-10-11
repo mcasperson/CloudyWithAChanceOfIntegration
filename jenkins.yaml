@@ -121,7 +121,8 @@ Resources:
       - DeviceName: /dev/xvda
         Ebs:
           VolumeSize: 250
-          VolumeType: gp2
+          VolumeType : "io1"
+          Iops: "1500"
       UserData:
         Fn::Base64: |
           #cloud-boothook
