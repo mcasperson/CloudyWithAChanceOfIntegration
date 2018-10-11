@@ -86,6 +86,10 @@ Resources:
       KeyName: DukeLegion
       SecurityGroups:
         - Ref: InstanceSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvda
+        Ebs:
+          VolumeSize: 250
       Tags:
         -
           Key: Appplication
@@ -117,12 +121,6 @@ Resources:
         -
           Key: scheduler:ec2-startstop
           Value: true
-      BlockDeviceMappings:
-      - DeviceName: /dev/xvda
-        Ebs:
-          VolumeSize: 250
-          VolumeType : "io1"
-          Iops: "1500"
       UserData:
         Fn::Base64: |
           #cloud-boothook
