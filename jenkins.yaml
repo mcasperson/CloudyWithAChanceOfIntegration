@@ -131,6 +131,7 @@ Resources:
           sudo apt-get install dotnet-sdk-2.1 docker -y
           sudo systemctl enable docker
           sudo systemctl start docker
+          sudo usermod -aG docker bitnami
   ElasticIP:
     Type: AWS::EC2::EIP
     Properties:
