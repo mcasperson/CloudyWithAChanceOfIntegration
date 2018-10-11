@@ -132,6 +132,7 @@ Resources:
           sudo systemctl enable docker
           sudo systemctl start docker
           sudo usermod -aG docker bitnami
+          sudo usermod -aG docker tomcat
   ElasticIP:
     Type: AWS::EC2::EIP
     Properties:
