@@ -80,7 +80,7 @@ Resources:
   Tomcat:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-f2efe388
+      ImageId: ami-0b629c54ad77b4d1d
       InstanceType:
         Ref: InstanceTypeParameter
       KeyName: DukeLegion
