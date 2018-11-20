@@ -69,8 +69,8 @@ Resources:
       EnableDnsHostnames: true
       InstanceTenancy: default
       Tags:
-      - Key: Name
-        Value: Kubernetes VPC
+        - Key: Name
+          Value: Kubernetes VPC
   InternetGateway:
     Type: AWS::EC2::InternetGateway
   VPCGatewayAttachment:
@@ -108,21 +108,21 @@ Resources:
       GroupDescription: "SSH and web traffic in, all traffic out."
       VpcId: !Ref VPC
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '22'
-        ToPort: '22'
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: '80'
-        ToPort: '80'
-        CidrIp: '0.0.0.0/0'
-      - IpProtocol: tcp
-        FromPort: '443'
-        ToPort: '443'
-        CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
       SecurityGroupEgress:
-      - IpProtocol: -1
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
   Jenkins:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -132,11 +132,11 @@ Resources:
         Ref: InstanceTypeParameter
       KeyName: DukeLegion
       SecurityGroupIds:
-      - Ref: InstanceSecurityGroup
+        - Ref: InstanceSecurityGroup
       BlockDeviceMappings:
-      - DeviceName: /dev/xvda
-        Ebs:
-          VolumeSize: 250
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 250
       Tags:
         -
           Key: Appplication
@@ -167,7 +167,7 @@ Resources:
           Value: CloudForation Script in Octopus Deploy
         -
           Key: scheduler:ec2-startstop
-          Value: true
+          Value: false
       UserData:
         Fn::Base64: |
           #cloud-boothook
@@ -179,7 +179,7 @@ Resources:
           sudo chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
           sudo chown root:root /etc/apt/sources.list.d/microsoft-prod.list
           sudo apt-get update
-          sudo apt-get install dotnet-sdk-2.1 nuget powershell libunwind8 -y
+          sudo apt-get install dotnet-sdk-2.1 -y
           #sudo apt-get install docker -y
           #sudo systemctl enable docker
           #sudo systemctl start docker
@@ -194,6 +194,6 @@ Outputs:
   PublicIp:
     Value:
       Fn::GetAtt:
-      - Jenkins
-      - PublicIp
+        - Jenkins
+        - PublicIp
     Description: Server's PublicIp Address
