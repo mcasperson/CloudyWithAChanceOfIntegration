@@ -127,7 +127,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       SubnetId: !Ref SubnetA
-      ImageId: ami-0c415f5d7ea83fc0d
+      ImageId: ami-02f8c0d6030acf7c3
       InstanceType:
         Ref: InstanceTypeParameter
       KeyName: DukeLegion
