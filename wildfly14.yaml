@@ -63,7 +63,7 @@ Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: SSH and Web POrts
+      GroupDescription: Enable SSH access via port 22
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: '22'
@@ -77,10 +77,10 @@ Resources:
         FromPort: '443'
         ToPort: '443'
         CidrIp: '0.0.0.0/0'
-  Tomcat:
+  WildFly:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0b629c54ad77b4d1d
+      ImageId: ami-03d64ebc5eb279210
       InstanceType:
         Ref: InstanceTypeParameter
       KeyName: DukeLegion
@@ -89,7 +89,7 @@ Resources:
       Tags:
         -
           Key: Appplication
-          Value: Tomcat
+          Value: WildFly
         -
           Key: Domain
           Value: None
@@ -101,7 +101,7 @@ Resources:
           Value: Transient
         -
           Key: Name
-          Value: Tomcat
+          Value: WildFly
         -
           Key: OS
           Value: Linux
@@ -124,15 +124,16 @@ Resources:
           echo "Starting" > /tmp/cloudhook
           sudo apt-get --assume-yes update
           sudo apt-get --assume-yes install curl libunwind8 gettext apt-transport-https jq
-          if [ ! -f /opt/bitnami/apache-tomcat/credentials.txt ]; then
-            sudo grep -oP "(?<=Bitnami application password to ')[^']+" /var/log/syslog > /opt/bitnami/apache-tomcat/credentials.txt
-            sudo chown tomcat:tomcat /opt/bitnami/apache-tomcat/credentials.txt
-            sudo chmod 600 /opt/bitnami/apache-tomcat/credentials.txt
-          fi
+          getent group deployment || sudo groupadd deployment
+          sudo usermod -a -G deployment wildfly
+          sudo usermod -a -G deployment bitnami
+          echo "Editing permissions" >> /tmp/cloudhook
+          sudo chgrp deployment /opt/bitnami/wildfly/standalone/tmp/auth
+          sudo chmod 775 /opt/bitnami/wildfly/standalone/tmp/auth
 Outputs:
   PublicIp:
     Value:
       Fn::GetAtt:
-      - Tomcat
+      - WildFly
       - PublicIp
     Description: Server's PublicIp Address
