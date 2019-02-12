@@ -1,0 +1,87 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "ServerApiKey" : {
+            "value": ""
+        },
+        "TargetName" : {
+            "value": ""
+        },
+        "ListeningPort" : {
+            "value": ""
+        },
+        "PublicHostNameConfiguration" : {
+            "value": ""
+        },
+        "CustomPublicHostName" : {
+            "value": ""
+        },
+        "ServerUsername" : {
+            "value": "admin"
+        },
+        "ServerPassword" : {
+            "value": "changeme"
+        },
+        "ServerUrl" : {
+            "value": "https://theoctopusserver"
+        },
+        "TargetRole" : {
+            "value": "Test"
+        },
+        "TargetEnvironment" : {
+            "value": "Test Environment 0"
+        },
+        "ServerPort" : {
+            "value": "10943"
+        },       
+        "containerName": {
+            "value": "octopus-tentacle"
+        },
+        "location": {
+            "value": "eastus"
+        },
+        "containerURI": {
+            "value": "index.docker.io/octopusdeploy/tentacle-prerelease:4.0.1-ci0001.ltsc2016"
+        },
+        "imageRegistryLoginServer": {
+            "value": "index.docker.io"
+        },
+        "imageUsername": {
+            "value": "devopsatoctopus"
+        },
+        "imagePassword": {
+            "value": "changeme"
+        },
+        "osType": {
+            "value": "Windows"
+        },
+        "numberCores": {
+            "value": "1"
+        },
+        "memory": {
+            "value": "0.5"
+        },
+        "ports": {
+            "value": "{\"port\":  , \"protocol\": \"\"}"
+        },
+        "ports2": {
+            "value": "{\"port\":  , \"protocol\": \"\"}"
+        },
+        "ports3": {
+            "value": "{\"port\":  , \"protocol\": \"\"}"
+        },
+        "hasPort2": {
+            "value": false
+        },
+        "hasPort3": {
+            "value": false
+        },
+        "containerType": {
+            "value": "privateImage-privateIP"
+        },
+        "restartPolicy": {
+            "value": "never"
+        }
+    }
+}
