@@ -5,9 +5,6 @@
         "ServerApiKey" : {
             "value": ""
         },
-        "TargetName" : {
-            "value": ""
-        },
         "ListeningPort" : {
             "value": ""
         },

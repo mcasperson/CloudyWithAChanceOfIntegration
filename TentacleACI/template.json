@@ -26,10 +26,6 @@
             "defaultValue": "",
             "type": "String"
         },
-        "TargetName": {
-            "defaultValue": "",
-            "type": "String"
-        },
         "ServerPort": {
             "defaultValue": "",
             "type": "String"
@@ -149,7 +145,6 @@
         "ServerUrl": "[parameters('ServerUrl')]",
         "TargetEnvironment": "[parameters('TargetEnvironment')]",
         "TargetRole": "[parameters('TargetRole')]",
-        "TargetName": "[parameters('TargetName')]",
         "ServerPort": "[parameters('ServerPort')]",
         "ListeningPort": "[parameters('ListeningPort')]",
         "PublicHostNameConfiguration": "[parameters('PublicHostNameConfiguration')]",
@@ -195,10 +190,6 @@
                                     "value": "[variables('TargetRole')]"
                                 },
                                 {
-                                    "name": "TargetName",
-                                    "value": "[variables('TargetName')]"
-                                },
-                                {
                                     "name": "ServerPort",
                                     "value": "[variables('ServerPort')]"
                                 },
@@ -216,7 +207,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[variables('containerName')]"
+                                    "value": "[concat(copyIndex(),'containergroup')]"
                                 }
                             ],
                             "ports": "[variables('ports')]",
@@ -277,10 +268,6 @@
                                     "value": "[variables('TargetRole')]"
                                 },
                                 {
-                                    "name": "TargetName",
-                                    "value": "[variables('TargetName')]"
-                                },
-                                {
                                     "name": "ServerPort",
                                     "value": "[variables('ServerPort')]"
                                 },
@@ -298,7 +285,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[variables('containerName')]"
+                                    "value": "[concat(copyIndex(),'containergroup')]"
                                 }
                             ],
                             "resources": {
@@ -353,10 +340,6 @@
                                     "value": "[variables('TargetRole')]"
                                 },
                                 {
-                                    "name": "TargetName",
-                                    "value": "[variables('TargetName')]"
-                                },
-                                {
                                     "name": "ServerPort",
                                     "value": "[variables('ServerPort')]"
                                 },
@@ -374,7 +357,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[variables('containerName')]"
+                                    "value": "[concat(copyIndex(),'containergroup')]"
                                 }
                             ],
                             "ports": "[variables('ports')]",
@@ -409,7 +392,7 @@
                 "count": 200
             },
             "condition": "[variables('_bothPrivate')]",
-            "name": "[concat(copyIndex(),'containergroup', uniqueString(resourceGroup().id))]",
+            "name": "[concat(copyIndex(),'containergroup')]",
             "type": "Microsoft.ContainerInstance/containerGroups",
             "apiVersion": "[variables('APIversion')]",
             "location": "[variables('location')]",
@@ -446,10 +429,6 @@
                                     "value": "[variables('TargetRole')]"
                                 },
                                 {
-                                    "name": "TargetName",
-                                    "value": "[variables('TargetName')]"
-                                },
-                                {
                                     "name": "ServerPort",
                                     "value": "[variables('ServerPort')]"
                                 },
@@ -467,7 +446,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[variables('containerName')]"
+                                    "value": "[concat(copyIndex(),'containergroup')]"
                                 }
                             ],
                             "resources": {
