@@ -114,7 +114,7 @@
         "commands": {
             "defaultValue": "none",
             "type": "String"
-        },       
+        },
         "restartPolicy": {
             "type": "String"
         }
@@ -137,7 +137,7 @@
         "dnsLabel": "[parameters('dnsLabel')]",
         "port": "[parameters('ports')]",
         "ports": "[if(and(parameters('hasPort2'), parameters('hasPort3')), createArray(json(parameters('ports')), json(parameters('ports2')), json(parameters('ports3'))), if(parameters('hasPort2'), createArray(json(parameters('ports')), json(parameters('ports2'))), if(parameters('hasPort3'), createArray(json(parameters('ports')), json(parameters('ports3'))), createArray(json(parameters('ports'))))))]",
-        "commands": "[if(equals(parameters('commands'), 'none'), take(createArray(''), 0), split(parameters('commands'), ', '))]",        
+        "commands": "[if(equals(parameters('commands'), 'none'), take(createArray(''), 0), split(parameters('commands'), ', '))]",
         "restartPolicy": "[parameters('restartPolicy')]",
         "name1": "[if(variables('_bothPublic'), parameters('containerName'), 'container1')]",
         "name2": "[if(variables('_publicImageOnly'), parameters('containerName'), 'container2')]",
@@ -213,6 +213,10 @@
                                 {
                                     "name": "CustomPublicHostName",
                                     "value": "[variables('CustomPublicHostName')]"
+                                },
+                                {
+                                    "name": "TargetName",
+                                    "value": "[variables('containerName')]"
                                 }
                             ],
                             "ports": "[variables('ports')]",
@@ -291,6 +295,10 @@
                                 {
                                     "name": "CustomPublicHostName",
                                     "value": "[variables('CustomPublicHostName')]"
+                                },
+                                {
+                                    "name": "TargetName",
+                                    "value": "[variables('containerName')]"
                                 }
                             ],
                             "resources": {
@@ -363,6 +371,10 @@
                                 {
                                     "name": "CustomPublicHostName",
                                     "value": "[variables('CustomPublicHostName')]"
+                                },
+                                {
+                                    "name": "TargetName",
+                                    "value": "[variables('containerName')]"
                                 }
                             ],
                             "ports": "[variables('ports')]",
@@ -394,7 +406,7 @@
         {
             "copy": {
                 "name": "containergroup",
-                "count": 75
+                "count": 200
             },
             "condition": "[variables('_bothPrivate')]",
             "name": "[concat(copyIndex(),'containergroup', uniqueString(resourceGroup().id))]",
@@ -452,6 +464,10 @@
                                 {
                                     "name": "CustomPublicHostName",
                                     "value": "[variables('CustomPublicHostName')]"
+                                },
+                                {
+                                    "name": "TargetName",
+                                    "value": "[variables('containerName')]"
                                 }
                             ],
                             "resources": {
