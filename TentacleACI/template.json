@@ -207,7 +207,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[concat(copyIndex(),'containergroup')]"
+                                    "value": "[concat(copyIndex(),'containergroup',resourceGroup().name)]"
                                 }
                             ],
                             "ports": "[variables('ports')]",
@@ -285,7 +285,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[concat(copyIndex(),'containergroup')]"
+                                    "value": "[concat(copyIndex(),'containergroup',resourceGroup().name)]"
                                 }
                             ],
                             "resources": {
@@ -357,7 +357,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[concat(copyIndex(),'containergroup')]"
+                                    "value": "[concat(copyIndex(),'containergroup',resourceGroup().name)]"
                                 }
                             ],
                             "ports": "[variables('ports')]",
@@ -446,7 +446,7 @@
                                 },
                                 {
                                     "name": "TargetName",
-                                    "value": "[concat(copyIndex(),'containergroup')]"
+                                    "value": "[concat(copyIndex(),'containergroup',resourceGroup().name)]"
                                 }
                             ],
                             "resources": {
