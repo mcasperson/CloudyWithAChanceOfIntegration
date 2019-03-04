@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Parameters:
   InstanceTypeParameter:
     Type: String
-    Default: m3.medium
+    Default: m3.large
     AllowedValues:
       - t1.micro
       - t2.nano
@@ -58,7 +58,7 @@ Parameters:
       - cr1.8xlarge
       - cc2.8xlarge
       - cg1.4xlarge
-    Description: Enter instance size. Default is m3.medium.
+    Description: Enter instance size. Default is m3.large.
   AMI:
     Type: String
     Default: ami-0bf148826ef491d16
