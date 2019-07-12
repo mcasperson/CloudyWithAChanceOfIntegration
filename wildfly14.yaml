@@ -89,7 +89,7 @@ Resources:
       Tags:
         -
           Key: Appplication
-          Value: WildFly
+          Value: WildFly 14
         -
           Key: Domain
           Value: None
